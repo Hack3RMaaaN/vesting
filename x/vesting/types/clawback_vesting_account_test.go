@@ -13,32 +13,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	sdkvesting "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
-)
 
-var (
-	stakeDenom    = "stake"
-	feeDenom      = "fee"
-	lockupPeriods = sdkvesting.Periods{
-		sdkvesting.Period{
-			Length: int64(16 * 60 * 60), // 16hs
-			Amount: sdk.NewCoins(sdk.NewInt64Coin(feeDenom, 1000), sdk.NewInt64Coin(stakeDenom, 100)),
-		},
-	}
-	vestingPeriods = sdkvesting.Periods{
-		sdkvesting.Period{
-			Length: int64(12 * 60 * 60), // 12hs
-			Amount: getPercentOfVestingCoins(50),
-		},
-		sdkvesting.Period{
-			Length: int64(6 * 60 * 60), // 6hs
-			Amount: getPercentOfVestingCoins(25),
-		},
-		sdkvesting.Period{
-			Length: int64(6 * 60 * 60), // 6hs
-			Amount: getPercentOfVestingCoins(25),
-		},
-	}
-	origCoins = sdk.Coins{sdk.NewInt64Coin(feeDenom, 1000), sdk.NewInt64Coin(stakeDenom, 100)}
+	"github.com/evmos/vesting/testutil"
 )
 
 type VestingAccountTestSuite struct {
@@ -160,7 +136,7 @@ func (suite *VestingAccountTestSuite) TestGetCoinsFunctions() {
 	endTime := now.Add(24 * time.Hour)
 	addr := sdk.AccAddress("test_address")
 	bacc := authtypes.NewBaseAccountWithAddress(addr)
-	va := types.NewClawbackVestingAccount(bacc, sdk.AccAddress("funder"), origCoins, now, lockupPeriods, vestingPeriods)
+	va := types.NewClawbackVestingAccount(bacc, sdk.AccAddress("funder"), testutil.OrigCoins, now, testutil.LockupPeriods, testutil.VestingPeriods)
 
 	testCases := []struct {
 		name                   string
@@ -179,20 +155,20 @@ func (suite *VestingAccountTestSuite) TestGetCoinsFunctions() {
 			expVestedCoins:         sdk.Coins{},
 			expLockedUpVestedCoins: sdk.Coins{},
 			expUnlockedVestedCoins: nil,
-			expUnvestedCoins:       origCoins,
-			expLockedUpCoins:       origCoins,
+			expUnvestedCoins:       testutil.OrigCoins,
+			expLockedUpCoins:       testutil.OrigCoins,
 			expUnlockedCoins:       sdk.Coins{},
-			expNotSpendable:        origCoins,
+			expNotSpendable:        testutil.OrigCoins,
 		},
 		{
 			name:                   "all coins vested and unlocked at the end of the vesting schedule",
 			time:                   endTime,
-			expVestedCoins:         origCoins,
+			expVestedCoins:         testutil.OrigCoins,
 			expLockedUpVestedCoins: sdk.Coins{},
-			expUnlockedVestedCoins: origCoins,
+			expUnlockedVestedCoins: testutil.OrigCoins,
 			expUnvestedCoins:       sdk.Coins{},
 			expLockedUpCoins:       sdk.Coins{},
-			expUnlockedCoins:       origCoins,
+			expUnlockedCoins:       testutil.OrigCoins,
 			expNotSpendable:        sdk.Coins{},
 		},
 		{
@@ -201,64 +177,64 @@ func (suite *VestingAccountTestSuite) TestGetCoinsFunctions() {
 			expVestedCoins:         sdk.Coins{},
 			expLockedUpVestedCoins: sdk.Coins{},
 			expUnlockedVestedCoins: nil,
-			expUnvestedCoins:       origCoins,
-			expLockedUpCoins:       origCoins,
+			expUnvestedCoins:       testutil.OrigCoins,
+			expLockedUpCoins:       testutil.OrigCoins,
 			expUnlockedCoins:       sdk.Coins{},
-			expNotSpendable:        origCoins,
+			expNotSpendable:        testutil.OrigCoins,
 		},
 		{
 			name:                   "50 percent of coins are vested after 1st vesting period, but before unlocking (all locked coins)",
 			time:                   now.Add(12 * time.Hour),
-			expVestedCoins:         getPercentOfVestingCoins(50),
-			expLockedUpVestedCoins: getPercentOfVestingCoins(50),
+			expVestedCoins:         testutil.GetPercentOfVestingCoins(50),
+			expLockedUpVestedCoins: testutil.GetPercentOfVestingCoins(50),
 			expUnlockedVestedCoins: nil,
-			expUnvestedCoins:       getPercentOfVestingCoins(50),
-			expLockedUpCoins:       origCoins,
+			expUnvestedCoins:       testutil.GetPercentOfVestingCoins(50),
+			expLockedUpCoins:       testutil.OrigCoins,
 			expUnlockedCoins:       sdk.Coins{},
-			expNotSpendable:        origCoins,
+			expNotSpendable:        testutil.OrigCoins,
 		},
 		{
 			name:                   "after lockup period (all coins unlocked) - 50 percent of coins already vested",
 			time:                   now.Add(16 * time.Hour),
-			expVestedCoins:         getPercentOfVestingCoins(50),
+			expVestedCoins:         testutil.GetPercentOfVestingCoins(50),
 			expLockedUpVestedCoins: sdk.Coins{},
-			expUnlockedVestedCoins: getPercentOfVestingCoins(50),
-			expUnvestedCoins:       getPercentOfVestingCoins(50),
+			expUnlockedVestedCoins: testutil.GetPercentOfVestingCoins(50),
+			expUnvestedCoins:       testutil.GetPercentOfVestingCoins(50),
 			expLockedUpCoins:       sdk.Coins{},
-			expUnlockedCoins:       origCoins,
-			expNotSpendable:        getPercentOfVestingCoins(50),
+			expUnlockedCoins:       testutil.OrigCoins,
+			expNotSpendable:        testutil.GetPercentOfVestingCoins(50),
 		},
 		{
 			name:                   "in between vesting periods 1 and 2 - no new coins don't vested",
 			time:                   now.Add(17 * time.Hour),
-			expVestedCoins:         getPercentOfVestingCoins(50),
+			expVestedCoins:         testutil.GetPercentOfVestingCoins(50),
 			expLockedUpVestedCoins: sdk.Coins{},
-			expUnlockedVestedCoins: getPercentOfVestingCoins(50),
-			expUnvestedCoins:       getPercentOfVestingCoins(50),
+			expUnlockedVestedCoins: testutil.GetPercentOfVestingCoins(50),
+			expUnvestedCoins:       testutil.GetPercentOfVestingCoins(50),
 			expLockedUpCoins:       sdk.Coins{},
-			expUnlockedCoins:       origCoins,
-			expNotSpendable:        getPercentOfVestingCoins(50),
+			expUnlockedCoins:       testutil.OrigCoins,
+			expNotSpendable:        testutil.GetPercentOfVestingCoins(50),
 		},
 		{
 			name:                   "75 percent of coins vested after period 2",
 			time:                   now.Add(18 * time.Hour),
-			expVestedCoins:         getPercentOfVestingCoins(75),
+			expVestedCoins:         testutil.GetPercentOfVestingCoins(75),
 			expLockedUpVestedCoins: sdk.Coins{},
-			expUnlockedVestedCoins: getPercentOfVestingCoins(75),
-			expUnvestedCoins:       getPercentOfVestingCoins(25),
+			expUnlockedVestedCoins: testutil.GetPercentOfVestingCoins(75),
+			expUnvestedCoins:       testutil.GetPercentOfVestingCoins(25),
 			expLockedUpCoins:       sdk.Coins{},
-			expUnlockedCoins:       origCoins,
-			expNotSpendable:        getPercentOfVestingCoins(25),
+			expUnlockedCoins:       testutil.OrigCoins,
+			expNotSpendable:        testutil.GetPercentOfVestingCoins(25),
 		},
 		{
 			name:                   "100 percent of coins vested",
 			time:                   now.Add(48 * time.Hour),
-			expVestedCoins:         origCoins,
+			expVestedCoins:         testutil.OrigCoins,
 			expLockedUpVestedCoins: sdk.Coins{},
-			expUnlockedVestedCoins: origCoins,
+			expUnlockedVestedCoins: testutil.OrigCoins,
 			expUnvestedCoins:       sdk.Coins{},
 			expLockedUpCoins:       sdk.Coins{},
-			expUnlockedCoins:       origCoins,
+			expUnlockedCoins:       testutil.OrigCoins,
 			expNotSpendable:        sdk.Coins{},
 		},
 	}
@@ -298,11 +274,11 @@ func (suite *VestingAccountTestSuite) TestTrackDelegationUndelegation() {
 		{
 			"delegate and undelegated all vested coins",
 			func(va *types.ClawbackVestingAccount) {
-				va.TrackDelegation(endTime, origCoins, origCoins)
+				va.TrackDelegation(endTime, testutil.OrigCoins, testutil.OrigCoins)
 			},
-			origCoins,
+			testutil.OrigCoins,
 			func(va *types.ClawbackVestingAccount) {
-				va.TrackUndelegation(origCoins)
+				va.TrackUndelegation(testutil.OrigCoins)
 			},
 			sdk.Coins{},
 			false,
@@ -311,11 +287,11 @@ func (suite *VestingAccountTestSuite) TestTrackDelegationUndelegation() {
 		{
 			"delegate and undelegate half of vested coins",
 			func(va *types.ClawbackVestingAccount) {
-				va.TrackDelegation(now, origCoins, vestingPeriods[0].Amount)
+				va.TrackDelegation(now, testutil.OrigCoins, testutil.VestingPeriods[0].Amount)
 			},
-			vestingPeriods[0].Amount,
+			testutil.VestingPeriods[0].Amount,
 			func(va *types.ClawbackVestingAccount) {
-				va.TrackUndelegation(vestingPeriods[0].Amount)
+				va.TrackUndelegation(testutil.VestingPeriods[0].Amount)
 			},
 			sdk.Coins{},
 			false,
@@ -324,11 +300,11 @@ func (suite *VestingAccountTestSuite) TestTrackDelegationUndelegation() {
 		{
 			"no modifications when delegation amount is zero or not enough funds",
 			func(va *types.ClawbackVestingAccount) {
-				va.TrackDelegation(now, origCoins, sdk.Coins{sdk.NewInt64Coin(stakeDenom, 1000000)})
+				va.TrackDelegation(now, testutil.OrigCoins, sdk.Coins{sdk.NewInt64Coin(testutil.StakeDenom, 1000000)})
 			},
-			vestingPeriods[0].Amount,
+			testutil.VestingPeriods[0].Amount,
 			func(va *types.ClawbackVestingAccount) {
-				va.TrackUndelegation(vestingPeriods[0].Amount)
+				va.TrackUndelegation(testutil.VestingPeriods[0].Amount)
 			},
 			sdk.Coins{},
 			true,
@@ -337,11 +313,11 @@ func (suite *VestingAccountTestSuite) TestTrackDelegationUndelegation() {
 		{
 			"no modifications when undelegation amount is zero or not enough funds",
 			func(va *types.ClawbackVestingAccount) {
-				va.TrackDelegation(now, origCoins, origCoins)
+				va.TrackDelegation(now, testutil.OrigCoins, testutil.OrigCoins)
 			},
-			vestingPeriods[0].Amount,
+			testutil.VestingPeriods[0].Amount,
 			func(va *types.ClawbackVestingAccount) {
-				va.TrackUndelegation(sdk.Coins{sdk.NewInt64Coin(stakeDenom, 0)})
+				va.TrackUndelegation(sdk.Coins{sdk.NewInt64Coin(testutil.StakeDenom, 0)})
 			},
 			sdk.Coins{},
 			false,
@@ -350,29 +326,29 @@ func (suite *VestingAccountTestSuite) TestTrackDelegationUndelegation() {
 		{
 			"vest 50% and delegate to two validator and undelegate from one validator that got slashed 50%",
 			func(va *types.ClawbackVestingAccount) {
-				va.TrackDelegation(now.Add(17*time.Hour), origCoins, sdk.Coins{sdk.NewInt64Coin(stakeDenom, 50)})
-				va.TrackDelegation(now.Add(17*time.Hour), origCoins, sdk.Coins{sdk.NewInt64Coin(stakeDenom, 50)})
+				va.TrackDelegation(now.Add(17*time.Hour), testutil.OrigCoins, sdk.Coins{sdk.NewInt64Coin(testutil.StakeDenom, 50)})
+				va.TrackDelegation(now.Add(17*time.Hour), testutil.OrigCoins, sdk.Coins{sdk.NewInt64Coin(testutil.StakeDenom, 50)})
 			},
-			sdk.Coins{sdk.NewInt64Coin(stakeDenom, 100)},
+			sdk.Coins{sdk.NewInt64Coin(testutil.StakeDenom, 100)},
 			func(va *types.ClawbackVestingAccount) {
-				va.TrackUndelegation(sdk.Coins{sdk.NewInt64Coin(stakeDenom, 25)})
+				va.TrackUndelegation(sdk.Coins{sdk.NewInt64Coin(testutil.StakeDenom, 25)})
 			},
-			sdk.Coins{sdk.NewInt64Coin(stakeDenom, 75)},
+			sdk.Coins{sdk.NewInt64Coin(testutil.StakeDenom, 75)},
 			false,
 			false,
 		},
 		{
 			"vest 50% and delegate to two validator and undelegate from one validator that got slashed 50% and undelegate from the other validator that did not get slashed",
 			func(va *types.ClawbackVestingAccount) {
-				va.TrackDelegation(now.Add(17*time.Hour), origCoins, sdk.Coins{sdk.NewInt64Coin(stakeDenom, 50)})
-				va.TrackDelegation(now.Add(17*time.Hour), origCoins, sdk.Coins{sdk.NewInt64Coin(stakeDenom, 50)})
+				va.TrackDelegation(now.Add(17*time.Hour), testutil.OrigCoins, sdk.Coins{sdk.NewInt64Coin(testutil.StakeDenom, 50)})
+				va.TrackDelegation(now.Add(17*time.Hour), testutil.OrigCoins, sdk.Coins{sdk.NewInt64Coin(testutil.StakeDenom, 50)})
 			},
-			sdk.Coins{sdk.NewInt64Coin(stakeDenom, 100)},
+			sdk.Coins{sdk.NewInt64Coin(testutil.StakeDenom, 100)},
 			func(va *types.ClawbackVestingAccount) {
-				va.TrackUndelegation(sdk.Coins{sdk.NewInt64Coin(stakeDenom, 25)})
-				va.TrackUndelegation(sdk.Coins{sdk.NewInt64Coin(stakeDenom, 50)})
+				va.TrackUndelegation(sdk.Coins{sdk.NewInt64Coin(testutil.StakeDenom, 25)})
+				va.TrackUndelegation(sdk.Coins{sdk.NewInt64Coin(testutil.StakeDenom, 50)})
 			},
-			sdk.Coins{sdk.NewInt64Coin(stakeDenom, 25)},
+			sdk.Coins{sdk.NewInt64Coin(testutil.StakeDenom, 25)},
 			false,
 			false,
 		},
@@ -383,7 +359,7 @@ func (suite *VestingAccountTestSuite) TestTrackDelegationUndelegation() {
 			addr := sdk.AccAddress("test_address")
 			bacc := authtypes.NewBaseAccountWithAddress(addr)
 
-			va := types.NewClawbackVestingAccount(bacc, sdk.AccAddress([]byte("funder")), origCoins, now, lockupPeriods, vestingPeriods)
+			va := types.NewClawbackVestingAccount(bacc, sdk.AccAddress([]byte("funder")), testutil.OrigCoins, now, testutil.LockupPeriods, testutil.VestingPeriods)
 
 			if tc.expDelegationPanic { //nolint:gocritic
 				suite.Require().Panics(func() {
@@ -410,8 +386,8 @@ func (suite *VestingAccountTestSuite) TestTrackDelegationUndelegation() {
 }
 
 func (suite *VestingAccountTestSuite) TestComputeClawback() {
-	fee := func(x int64) sdk.Coin { return sdk.NewInt64Coin(feeDenom, x) }
-	stake := func(x int64) sdk.Coin { return sdk.NewInt64Coin(stakeDenom, x) }
+	fee := func(x int64) sdk.Coin { return sdk.NewInt64Coin(testutil.FeeDenom, x) }
+	stake := func(x int64) sdk.Coin { return sdk.NewInt64Coin(testutil.StakeDenom, x) }
 	now := tmtime.Now()
 	lockupPeriods := sdkvesting.Periods{
 		{Length: int64(12 * 3600), Amount: sdk.NewCoins(fee(1000), stake(100))}, // noon
@@ -435,7 +411,7 @@ func (suite *VestingAccountTestSuite) TestComputeClawback() {
 		{
 			"should claw back everything if clawed back before start time",
 			now.Add(-time.Hour).Unix(),
-			origCoins,
+			testutil.OrigCoins,
 			sdk.Coins{},
 			sdkvesting.Periods{},
 			sdkvesting.Periods{},
@@ -470,7 +446,7 @@ func (suite *VestingAccountTestSuite) TestComputeClawback() {
 		suite.Run(tc.name, func() {
 			addr := sdk.AccAddress("test_address")
 			bacc := authtypes.NewBaseAccountWithAddress(addr)
-			va := types.NewClawbackVestingAccount(bacc, sdk.AccAddress([]byte("funder")), origCoins, now, lockupPeriods, vestingPeriods)
+			va := types.NewClawbackVestingAccount(bacc, sdk.AccAddress([]byte("funder")), testutil.OrigCoins, now, lockupPeriods, vestingPeriods)
 
 			va2, amt := va.ComputeClawback(tc.time)
 
@@ -480,17 +456,4 @@ func (suite *VestingAccountTestSuite) TestComputeClawback() {
 			suite.Require().Equal(tc.expVestingPeriods, va2.VestingPeriods)
 		})
 	}
-}
-
-// getPercentOfVestingCoins is a helper function to calculate
-// the specified percentage of the coins in the vesting schedule
-func getPercentOfVestingCoins(percentage int64) sdk.Coins {
-	if percentage < 0 || percentage > 100 {
-		panic("invalid percentage passed!")
-	}
-	var retCoins sdk.Coins
-	for _, coin := range origCoins {
-		retCoins = retCoins.Add(sdk.NewCoin(coin.Denom, coin.Amount.MulRaw(percentage).QuoRaw(100)))
-	}
-	return retCoins
 }

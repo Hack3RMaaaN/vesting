@@ -1,6 +1,6 @@
 // Copyright Tharsis Labs Ltd.(Evmos)
 // SPDX-License-Identifier:ENCL-1.0(https://github.com/evmos/evmos/blob/main/LICENSE)
-package cosmos
+package ante
 
 import (
 	errorsmod "cosmossdk.io/errors"
@@ -9,23 +9,21 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	errortypes "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/authz"
-	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
-	"github.com/cosmos/cosmos-sdk/x/bank/types"
-	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	vestingtypes "github.com/evmos/vesting/x/vesting/types"
+
+	"github.com/evmos/vesting/x/vesting/types"
 )
 
 // VestingDelegationDecorator validates delegation of vested coins
 type VestingDelegationDecorator struct {
 	ak  types.AccountKeeper
-	sk  stakingkeeper.Keeper
-	bk  bankkeeper.Keeper
+	sk  types.StakingKeeper
+	bk  types.BankKeeper
 	cdc codec.BinaryCodec
 }
 
 // NewVestingDelegationDecorator creates a new VestingDelegationDecorator
-func NewVestingDelegationDecorator(ak types.AccountKeeper, sk stakingkeeper.Keeper, bk bankkeeper.Keeper, cdc codec.BinaryCodec) VestingDelegationDecorator {
+func NewVestingDelegationDecorator(ak types.AccountKeeper, sk types.StakingKeeper, bk types.BankKeeper, cdc codec.BinaryCodec) VestingDelegationDecorator {
 	return VestingDelegationDecorator{
 		ak:  ak,
 		sk:  sk,
@@ -94,7 +92,7 @@ func (vdd VestingDelegationDecorator) validateMsg(ctx sdk.Context, msg sdk.Msg) 
 			)
 		}
 
-		clawbackAccount, isClawback := acc.(*vestingtypes.ClawbackVestingAccount)
+		clawbackAccount, isClawback := acc.(*types.ClawbackVestingAccount)
 		if !isClawback {
 			// continue to next decorator as this logic only applies to vesting
 			return nil
@@ -105,25 +103,26 @@ func (vdd VestingDelegationDecorator) validateMsg(ctx sdk.Context, msg sdk.Msg) 
 		coins := clawbackAccount.GetVestedCoins(ctx.BlockTime())
 		if coins == nil || coins.Empty() {
 			return errorsmod.Wrap(
-				vestingtypes.ErrInsufficientVestedCoins,
+				types.ErrInsufficientVestedCoins,
 				"account has no vested coins",
 			)
 		}
 
 		balance := vdd.bk.GetBalance(ctx, addr, bondDenom)
 		unvestedCoins := clawbackAccount.GetVestingCoins(ctx.BlockTime())
+		// Can only delegate bondable coins
+		unvestedBondableAmt := unvestedCoins.AmountOf(bondDenom)
 		// A ClawbackVestingAccount can delegate coins from the vesting schedule
 		// when having vested locked coins or unlocked vested coins.
 		// It CANNOT delegate unvested coins
-		delegatable, hasNeg := sdk.Coins{balance}.SafeSub(unvestedCoins...)
-		if hasNeg {
-			delegatable = sdk.NewCoins()
+		availableAmt := balance.Amount.Sub(unvestedBondableAmt)
+		if availableAmt.IsNegative() {
+			availableAmt = math.ZeroInt()
 		}
 
-		availableAmt := delegatable.AmountOf(bondDenom)
 		if availableAmt.LT(delegationAmt) {
 			return errorsmod.Wrapf(
-				vestingtypes.ErrInsufficientVestedCoins,
+				types.ErrInsufficientVestedCoins,
 				"cannot delegate unvested coins. delegatable coins < delegation amount (%s < %s)",
 				availableAmt, delegationAmt,
 			)
