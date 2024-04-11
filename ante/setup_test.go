@@ -10,7 +10,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/testutil/testdata"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	moduletestutil "github.com/cosmos/cosmos-sdk/types/module/testutil"
-	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	xauthsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
 	gomock "go.uber.org/mock/gomock"
 
@@ -70,44 +69,19 @@ func setupTestSuite(t *testing.T) *AnteTestSuite {
 
 // createTestTx is a helper function to create a tx with given inputs.
 func (suite *AnteTestSuite) createTestTx(priv cryptotypes.PrivKey, accNum, accSeq uint64, chainID string) (xauthsigning.Tx, error) {
-	// First round: gather the signer infos. We use the "set empty
-	// signature" hack to do that.
-	var sigsV2 []signing.SignatureV2
-
-	sigV2 := signing.SignatureV2{
-		PubKey: priv.PubKey(),
-		Data: &signing.SingleSignatureData{
-			SignMode:  suite.clientCtx.TxConfig.SignModeHandler().DefaultMode(),
-			Signature: nil,
-		},
-		Sequence: accSeq,
-	}
-
-	sigsV2 = append(sigsV2, sigV2)
-
-	err := suite.txBuilder.SetSignatures(sigsV2...)
-	if err != nil {
-		return nil, err
-	}
-
-	// Second round: all signer infos are set, so each signer can sign.
-	sigsV2 = []signing.SignatureV2{}
-
 	signerData := xauthsigning.SignerData{
 		ChainID:       chainID,
 		AccountNumber: accNum,
 		Sequence:      accSeq,
 	}
-	sigV2, err = tx.SignWithPrivKey(
+	sigV2, err := tx.SignWithPrivKey(
 		suite.clientCtx.TxConfig.SignModeHandler().DefaultMode(), signerData,
 		suite.txBuilder, priv, suite.clientCtx.TxConfig, accSeq)
 	if err != nil {
 		return nil, err
 	}
 
-	sigsV2 = append(sigsV2, sigV2)
-
-	err = suite.txBuilder.SetSignatures(sigsV2...)
+	err = suite.txBuilder.SetSignatures(sigV2)
 	if err != nil {
 		return nil, err
 	}
