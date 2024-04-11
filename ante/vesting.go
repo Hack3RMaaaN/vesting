@@ -124,7 +124,7 @@ func (vdd VestingDelegationDecorator) validateMsg(ctx sdk.Context, msg sdk.Msg) 
 		if availableAmt.LT(delegationAmt) {
 			return errorsmod.Wrapf(
 				vestingtypes.ErrInsufficientVestedCoins,
-				"cannot delegate unvested coins. coins vested < delegation amount (%s < %s)",
+				"cannot delegate unvested coins. delegatable coins < delegation amount (%s < %s)",
 				availableAmt, delegationAmt,
 			)
 		}
