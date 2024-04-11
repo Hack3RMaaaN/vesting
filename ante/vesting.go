@@ -4,6 +4,7 @@ package cosmos
 
 import (
 	errorsmod "cosmossdk.io/errors"
+	"cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	errortypes "github.com/cosmos/cosmos-sdk/types/errors"
@@ -72,8 +73,15 @@ func (vdd VestingDelegationDecorator) validateAuthz(ctx sdk.Context, execMsg *au
 
 // validateMsg checks that the only vested coins can be delegated
 func (vdd VestingDelegationDecorator) validateMsg(ctx sdk.Context, msg sdk.Msg) error {
-	delegateMsg, ok := msg.(*stakingtypes.MsgDelegate)
-	if !ok {
+	var delegationAmt math.Int
+	// need to validate delegation amount in MsgDelegate
+	// and self delegation amount in MsgCreateValidator
+	switch stkMsg := msg.(type) {
+	case *stakingtypes.MsgDelegate:
+		delegationAmt = stkMsg.Amount.Amount
+	case *stakingtypes.MsgCreateValidator:
+		delegationAmt = stkMsg.Value.Amount
+	default:
 		return nil
 	}
 
@@ -94,7 +102,7 @@ func (vdd VestingDelegationDecorator) validateMsg(ctx sdk.Context, msg sdk.Msg) 
 
 		// error if bond amount is > vested coins
 		bondDenom := vdd.sk.BondDenom(ctx)
-		coins := clawbackAccount.GetVestedOnly(ctx.BlockTime())
+		coins := clawbackAccount.GetVestedCoins(ctx.BlockTime())
 		if coins == nil || coins.Empty() {
 			return errorsmod.Wrap(
 				vestingtypes.ErrInsufficientVestedCoins,
@@ -103,18 +111,21 @@ func (vdd VestingDelegationDecorator) validateMsg(ctx sdk.Context, msg sdk.Msg) 
 		}
 
 		balance := vdd.bk.GetBalance(ctx, addr, bondDenom)
-		unvestedOnly := clawbackAccount.GetUnvestedOnly(ctx.BlockTime())
-		spendable, hasNeg := sdk.Coins{balance}.SafeSub(unvestedOnly...)
+		unvestedCoins := clawbackAccount.GetVestingCoins(ctx.BlockTime())
+		// A ClawbackVestingAccount can delegate coins from the vesting schedule
+		// when having vested locked coins or unlocked vested coins.
+		// It CANNOT delegate unvested coins
+		delegatable, hasNeg := sdk.Coins{balance}.SafeSub(unvestedCoins...)
 		if hasNeg {
-			spendable = sdk.NewCoins()
+			delegatable = sdk.NewCoins()
 		}
 
-		vested := spendable.AmountOf(bondDenom)
-		if vested.LT(delegateMsg.Amount.Amount) {
+		vested := delegatable.AmountOf(bondDenom)
+		if vested.LT(delegationAmt) {
 			return errorsmod.Wrapf(
 				vestingtypes.ErrInsufficientVestedCoins,
 				"cannot delegate unvested coins. coins vested < delegation amount (%s < %s)",
-				vested, delegateMsg.Amount.Amount,
+				vested, delegationAmt,
 			)
 		}
 	}
