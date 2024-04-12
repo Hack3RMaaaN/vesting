@@ -110,7 +110,7 @@ func (suite *VestingAccountTestSuite) TestClawbackAccountNew() {
 				VestingPeriods: sdkvesting.Periods{sdkvesting.Period{Length: 20, Amount: initialVesting}},
 			},
 			expErr: true,
-			expErrMsg: "vesting schedule exteds beyond account end time",
+			expErrMsg: "vesting schedule extends beyond account end time",
 		},
 		{
 			name: "Clawback vesting account - invalid vesting coins",

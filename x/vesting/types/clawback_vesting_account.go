@@ -146,7 +146,7 @@ func (va ClawbackVestingAccount) Validate() error {
 	}
 
 	if vestingEnd > va.EndTime {
-		return errors.New("vesting schedule exteds beyond account end time")
+		return errors.New("vesting schedule extends beyond account end time")
 	}
 
 	if !CoinEq(vestingCoins, va.OriginalVesting) {
