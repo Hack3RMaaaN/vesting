@@ -31,13 +31,14 @@ func (suite *VestingAccountTestSuite) TestClawbackAccountNew() {
 	initialVesting := sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 50))
 
 	testCases := []struct {
-		name   string
-		acc    authtypes.GenesisAccount
-		expErr bool
+		name      string
+		acc       authtypes.GenesisAccount
+		expErr    bool
+		expErrMsg string
 	}{
 		{
-			"Clawback vesting account - pass",
-			types.NewClawbackVestingAccount(
+			name: "Clawback vesting account - pass",
+			acc: types.NewClawbackVestingAccount(
 				baseAcc,
 				sdk.AccAddress("the funder"),
 				initialVesting,
@@ -45,11 +46,11 @@ func (suite *VestingAccountTestSuite) TestClawbackAccountNew() {
 				sdkvesting.Periods{sdkvesting.Period{Length: 101, Amount: initialVesting}},
 				sdkvesting.Periods{sdkvesting.Period{Length: 201, Amount: initialVesting}},
 			),
-			false,
+			expErr: false,
 		},
 		{
-			"Clawback vesting account - invalid vesting end",
-			&types.ClawbackVestingAccount{
+			name: "Clawback vesting account - invalid vesting end",
+			acc: &types.ClawbackVestingAccount{
 				BaseVestingAccount: &sdkvesting.BaseVestingAccount{
 					BaseAccount:     baseAcc,
 					OriginalVesting: initialVesting,
@@ -60,11 +61,12 @@ func (suite *VestingAccountTestSuite) TestClawbackAccountNew() {
 				LockupPeriods:  sdkvesting.Periods{sdkvesting.Period{Length: 10, Amount: initialVesting}},
 				VestingPeriods: sdkvesting.Periods{sdkvesting.Period{Length: 10, Amount: initialVesting}},
 			},
-			true,
+			expErr: true,
+			expErrMsg: "vesting start-time must be before end-time",
 		},
 		{
-			"Clawback vesting account - lockup too long",
-			&types.ClawbackVestingAccount{
+			name: "Clawback vesting account - lockup too long",
+			acc: &types.ClawbackVestingAccount{
 				BaseVestingAccount: &sdkvesting.BaseVestingAccount{
 					BaseAccount:     baseAcc,
 					OriginalVesting: initialVesting,
@@ -75,11 +77,12 @@ func (suite *VestingAccountTestSuite) TestClawbackAccountNew() {
 				LockupPeriods:  sdkvesting.Periods{sdkvesting.Period{Length: 20, Amount: initialVesting}},
 				VestingPeriods: sdkvesting.Periods{sdkvesting.Period{Length: 10, Amount: initialVesting}},
 			},
-			true,
+			expErr: true,
+			expErrMsg: "lockup schedule extends beyond account end time",
 		},
 		{
-			"Clawback vesting account - invalid lockup coins",
-			&types.ClawbackVestingAccount{
+			name: "Clawback vesting account - invalid lockup coins",
+			acc: &types.ClawbackVestingAccount{
 				BaseVestingAccount: &sdkvesting.BaseVestingAccount{
 					BaseAccount:     baseAcc,
 					OriginalVesting: initialVesting,
@@ -90,11 +93,12 @@ func (suite *VestingAccountTestSuite) TestClawbackAccountNew() {
 				LockupPeriods:  sdkvesting.Periods{sdkvesting.Period{Length: 10, Amount: initialVesting.Add(initialVesting...)}},
 				VestingPeriods: sdkvesting.Periods{sdkvesting.Period{Length: 10, Amount: initialVesting}},
 			},
-			true,
+			expErr: true,
+			expErrMsg: "original vesting coins does not match the sum of all coins in lockup periods",
 		},
 		{
-			"Clawback vesting account - vesting too long",
-			&types.ClawbackVestingAccount{
+			name: "Clawback vesting account - vesting too long",
+			acc: &types.ClawbackVestingAccount{
 				BaseVestingAccount: &sdkvesting.BaseVestingAccount{
 					BaseAccount:     baseAcc,
 					OriginalVesting: initialVesting,
@@ -105,11 +109,12 @@ func (suite *VestingAccountTestSuite) TestClawbackAccountNew() {
 				LockupPeriods:  sdkvesting.Periods{sdkvesting.Period{Length: 10, Amount: initialVesting}},
 				VestingPeriods: sdkvesting.Periods{sdkvesting.Period{Length: 20, Amount: initialVesting}},
 			},
-			true,
+			expErr: true,
+			expErrMsg: "vesting schedule exteds beyond account end time",
 		},
 		{
-			"Clawback vesting account - invalid vesting coins",
-			&types.ClawbackVestingAccount{
+			name: "Clawback vesting account - invalid vesting coins",
+			acc: &types.ClawbackVestingAccount{
 				BaseVestingAccount: &sdkvesting.BaseVestingAccount{
 					BaseAccount:     baseAcc,
 					OriginalVesting: initialVesting,
@@ -120,13 +125,20 @@ func (suite *VestingAccountTestSuite) TestClawbackAccountNew() {
 				LockupPeriods:  sdkvesting.Periods{sdkvesting.Period{Length: 10, Amount: initialVesting}},
 				VestingPeriods: sdkvesting.Periods{sdkvesting.Period{Length: 10, Amount: initialVesting.Add(initialVesting...)}},
 			},
-			true,
+			expErr: true,
+			expErrMsg: "original vesting coins does not match the sum of all coins in vesting periods",
 		},
 	}
 
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
-			suite.Require().Equal(tc.expErr, tc.acc.Validate() != nil)
+			err := tc.acc.Validate()
+			if tc.expErr {
+				suite.Require().Error(err)
+				suite.Require().Contains(err.Error(), tc.expErrMsg)
+				return
+			}
+			suite.Require().NoError(err)
 		})
 	}
 }
