@@ -400,7 +400,7 @@ func (suite *VestingAccountTestSuite) TestTrackDelegationUndelegation() {
 func (suite *VestingAccountTestSuite) TestComputeClawback() {
 	fee := func(x int64) sdk.Coin { return sdk.NewInt64Coin(testutil.FeeDenom, x) }
 	stake := func(x int64) sdk.Coin { return sdk.NewInt64Coin(testutil.StakeDenom, x) }
-	now := tmtime.Now()
+	vestingStart := tmtime.Now()
 	lockupPeriods := sdkvesting.Periods{
 		{Length: int64(12 * 3600), Amount: sdk.NewCoins(fee(1000), stake(100))}, // noon
 	}
@@ -422,7 +422,7 @@ func (suite *VestingAccountTestSuite) TestComputeClawback() {
 	}{
 		{
 			"should claw back everything if clawed back before start time",
-			now.Add(-time.Hour).Unix(),
+			vestingStart.Add(-time.Hour).Unix(),
 			testutil.OrigCoins,
 			sdk.Coins{},
 			sdkvesting.Periods{},
@@ -430,7 +430,7 @@ func (suite *VestingAccountTestSuite) TestComputeClawback() {
 		},
 		{
 			"should clawback everything before any vesting or lockup period passes",
-			now.Unix(),
+			vestingStart.Unix(),
 			sdk.NewCoins(fee(1000), stake(100)),
 			sdk.Coins{},
 			sdkvesting.Periods{},
@@ -438,7 +438,7 @@ func (suite *VestingAccountTestSuite) TestComputeClawback() {
 		},
 		{
 			"it should clawback after two vesting periods and before the first lock period",
-			now.Add(11 * time.Hour).Unix(),
+			vestingStart.Add(11 * time.Hour).Unix(),
 			sdk.Coins{fee(600), stake(50)}, // last 3 periods are still vesting
 			sdk.Coins{fee(400), stake(50)}, // first 2 periods
 			sdkvesting.Periods{{Length: int64(12 * 3600), Amount: sdk.NewCoins(fee(400), stake(50))}},
@@ -446,7 +446,7 @@ func (suite *VestingAccountTestSuite) TestComputeClawback() {
 		},
 		{
 			"should clawback zero coins after all vesting and locked periods",
-			now.Add(23 * time.Hour).Unix(),
+			vestingStart.Add(23 * time.Hour).Unix(),
 			sdk.Coins{},
 			sdk.Coins{fee(1000), stake(100)},
 			lockupPeriods,
@@ -458,7 +458,7 @@ func (suite *VestingAccountTestSuite) TestComputeClawback() {
 		suite.Run(tc.name, func() {
 			addr := sdk.AccAddress("test_address")
 			bacc := authtypes.NewBaseAccountWithAddress(addr)
-			va := types.NewClawbackVestingAccount(bacc, sdk.AccAddress([]byte("funder")), testutil.OrigCoins, now, lockupPeriods, vestingPeriods)
+			va := types.NewClawbackVestingAccount(bacc, sdk.AccAddress([]byte("funder")), testutil.OrigCoins, vestingStart, lockupPeriods, vestingPeriods)
 
 			va2, amt := va.ComputeClawback(tc.time)
 
