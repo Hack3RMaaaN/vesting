@@ -65,12 +65,7 @@ func TestVestingDelegationDecorator(t *testing.T) {
 		expErrMsg string
 	}{
 		{
-			name:    "MsgSend with a normal account - no-op",
-			msg:     sendMsg,
-			expPass: true,
-		},
-		{
-			name:    "MsgSend with a clawback vesting account - no-op",
+			name:    "MsgSend - no-op",
 			msg:     sendMsg,
 			expPass: true,
 		},
