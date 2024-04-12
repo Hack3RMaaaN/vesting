@@ -57,11 +57,11 @@ func (va ClawbackVestingAccount) GetLockedUpVestedCoins(blockTime time.Time) sdk
 }
 
 // GetUnlockedVestedCoins returns the total number of vested coins that are unlocked.
-// If no coins are vested and unlocked, nil is returned.
+// If no coins are vested and unlocked, empty coins are returned.
 func (va ClawbackVestingAccount) GetUnlockedVestedCoins(blockTime time.Time) sdk.Coins {
 	coins := va.GetUnlockedCoins(blockTime).Min(va.GetVestedCoins(blockTime))
 	if coins.IsZero() {
-		return nil
+		return sdk.Coins{}
 	}
 	return coins
 }
