@@ -74,7 +74,7 @@ func TestVestingDelegationDecorator(t *testing.T) {
 			msg:  delMsg,
 			malleate: func(suite *AnteTestSuite) {
 				// Asserts that the first and only call to GetAccount() with the 'addr' address
-				// will return the clawback vesting account defined in 'vestAcc' var.
+				// will return nil.
 				suite.accountKeeper.EXPECT().GetAccount(suite.ctx, addr).Return(nil)
 			},
 			expPass:   false,
@@ -85,7 +85,7 @@ func TestVestingDelegationDecorator(t *testing.T) {
 			msg:  createValMsg,
 			malleate: func(suite *AnteTestSuite) {
 				// Asserts that the first and only call to GetAccount() with the 'addr' address
-				// will return the clawback vesting account defined in 'vestAcc' var.
+				// will return nil.
 				suite.accountKeeper.EXPECT().GetAccount(suite.ctx, addr).Return(nil)
 			},
 			expPass:   false,
@@ -96,7 +96,7 @@ func TestVestingDelegationDecorator(t *testing.T) {
 			msg:  delMsg,
 			malleate: func(suite *AnteTestSuite) {
 				// Asserts that the first and only call to GetAccount() with the 'addr' address
-				// will return the clawback vesting account defined in 'vestAcc' var.
+				// will return the base account defined in 'baseAcc' var.
 				suite.accountKeeper.EXPECT().GetAccount(suite.ctx, addr).Return(baseAcc)
 			},
 			expPass: true,
@@ -106,7 +106,7 @@ func TestVestingDelegationDecorator(t *testing.T) {
 			msg:  createValMsg,
 			malleate: func(suite *AnteTestSuite) {
 				// Asserts that the first and only call to GetAccount() with the 'addr' address
-				// will return the clawback vesting account defined in 'vestAcc' var.
+				// will return the base account defined in 'baseAcc' var.
 				suite.accountKeeper.EXPECT().GetAccount(suite.ctx, addr).Return(baseAcc)
 			},
 			expPass: true,
