@@ -316,7 +316,7 @@ func (suite *VestingAccountTestSuite) TestTrackDelegationUndelegation() {
 			},
 			testutil.VestingPeriods[0].Amount,
 			func(va *types.ClawbackVestingAccount) {
-				va.TrackUndelegation(testutil.VestingPeriods[0].Amount)
+				panic("this should not be called")
 			},
 			sdk.Coins{},
 			true,
@@ -325,7 +325,7 @@ func (suite *VestingAccountTestSuite) TestTrackDelegationUndelegation() {
 		{
 			"no modifications when undelegation amount is zero or not enough funds",
 			func(va *types.ClawbackVestingAccount) {
-				va.TrackDelegation(now, testutil.OrigCoins, testutil.OrigCoins)
+				panic("this should not be called")
 			},
 			testutil.VestingPeriods[0].Amount,
 			func(va *types.ClawbackVestingAccount) {
@@ -350,7 +350,7 @@ func (suite *VestingAccountTestSuite) TestTrackDelegationUndelegation() {
 			false,
 		},
 		{
-			"vest 50% and delegate to two validator and undelegate from one validator that got slashed 50% and undelegate from the other validator that did not get slashed",
+			"vest 50% and delegate to two validator and undelegate from one validator and undelegate from the other validator",
 			func(va *types.ClawbackVestingAccount) {
 				va.TrackDelegation(now.Add(17*time.Hour), testutil.OrigCoins, sdk.Coins{sdk.NewInt64Coin(testutil.StakeDenom, 50)})
 				va.TrackDelegation(now.Add(17*time.Hour), testutil.OrigCoins, sdk.Coins{sdk.NewInt64Coin(testutil.StakeDenom, 50)})
