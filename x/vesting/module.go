@@ -10,7 +10,6 @@ import (
 
 	"github.com/evmos/vesting/x/vesting/client/cli"
 	"github.com/evmos/vesting/x/vesting/keeper"
-	keeper2 "github.com/evmos/vesting/x/vesting/keeper"
 	"github.com/evmos/vesting/x/vesting/types"
 
 	abci "github.com/cometbft/cometbft/abci/types"
@@ -91,7 +90,7 @@ func (AppModuleBasic) GetQueryCmd() *cobra.Command {
 // AppModule interface.
 type AppModule struct {
 	AppModuleBasic
-	keeper keeper2.Keeper
+	keeper keeper.Keeper
 	ak     authkeeper.AccountKeeper
 	bk     bankkeeper.Keeper
 	sk     stakingkeeper.Keeper
@@ -99,7 +98,7 @@ type AppModule struct {
 
 // NewAppModule returns a new vesting AppModule.
 func NewAppModule(
-	k keeper2.Keeper,
+	k keeper.Keeper,
 	ak authkeeper.AccountKeeper,
 	bk bankkeeper.Keeper,
 	sk stakingkeeper.Keeper,
