@@ -72,16 +72,32 @@ func (va ClawbackVestingAccount) GetVestingCoins(blockTime time.Time) sdk.Coins 
 	return va.OriginalVesting.Sub(va.GetVestedCoins(blockTime)...)
 }
 
-// LockedCoins returns the set of coins that are not spendable (i.e. locked or unvested),
+// LockedCoins returns the set of coins that are not spendable (i.e. locked up or unvested),
 // defined as the vesting coins (unvested) plus locked vested coins.
 //
-// totalAmt = vesting(un/locked) + lockedVested + unlockedVested
+// totalAmt = vesting(un/locked) + lockedUpVested + unlockedVested
 //
 //	(all)   =   (cannot spend)    (cannot spend)   (CAN spend)
 //
 // lockedCoins = totalAmt - unlockedVested
 func (va ClawbackVestingAccount) LockedCoins(blockTime time.Time) sdk.Coins {
-	return va.OriginalVesting.Sub(va.GetUnlockedVestedCoins(blockTime)...)
+	// Can delegate lockedUpVested and this will reduce the bank balance
+	// on the account. As long as there're lockedUpVested coins, we'll consider
+	// the delegated tokens as lockedUpVested tokens
+	// min(lockedUpVested, DelegatedFree)
+	//
+	// Consider that the "DelegatedFree" coins tracked on delegations refers to unvested tokens.
+	// These "free" (unvested) tokens can be locked up or unlocked
+	lockedUpVestedDelegatedCoins := va.DelegatedFree.Min(va.GetLockedUpVestedCoins(blockTime))
+
+	res, isNeg := va.OriginalVesting.SafeSub(va.GetUnlockedVestedCoins(blockTime).Add(lockedUpVestedDelegatedCoins...)...)
+
+	// safety check
+	if isNeg {
+		return sdk.Coins{}
+	}
+
+	return res
 }
 
 // TrackDelegation tracks a desired delegation amount by setting the appropriate
