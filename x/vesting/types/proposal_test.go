@@ -16,7 +16,7 @@ func TestProposalTestSuite(t *testing.T) {
 }
 
 func (suite *ProposalTestSuite) TestKeysTypes() {
-	suite.Require().Equal("vesting", (&types.ClawbackProposal{}).ProposalRoute())
+	suite.Require().Equal("clawbackvesting", (&types.ClawbackProposal{}).ProposalRoute())
 	suite.Require().Equal("Clawback", (&types.ClawbackProposal{}).ProposalType())
 }
 
@@ -34,7 +34,7 @@ func (suite *ProposalTestSuite) TestClawbackProposal() {
 			msg:         "Clawback proposal - valid address",
 			title:       "test",
 			description: "test desc",
-			address:     "evmos19y7d5jz7q0v86zw5m0300mhprpvu0ccc4x6xgg",
+			address:     "cosmos1p3ucd3ptpw902fluyjzhq3ffgq4ntddac9sa3s",
 			expectPass:  true,
 		},
 		// Invalid - Missing params
@@ -42,29 +42,29 @@ func (suite *ProposalTestSuite) TestClawbackProposal() {
 			msg:         "Clawback proposal - invalid missing title ",
 			title:       "",
 			description: "test desc",
-			address:     "evmos19y7d5jz7q0v86zw5m0300mhprpvu0ccc4x6xgg",
+			address:     "cosmos1p3ucd3ptpw902fluyjzhq3ffgq4ntddac9sa3s",
 			expectPass:  false,
 		},
 		{
 			msg:         "Clawback proposal - invalid missing description ",
 			title:       "test",
 			description: "",
-			address:     "evmos19y7d5jz7q0v86zw5m0300mhprpvu0ccc4x6xgg",
+			address:     "cosmos1p3ucd3ptpw902fluyjzhq3ffgq4ntddac9sa3s",
 			expectPass:  false,
 		},
 		// Invalid address
 		{
-			msg:         "Clawback proposal - invalid address (no hex)",
+			msg:         "Clawback proposal - invalid address",
 			title:       "test",
 			description: "test desc",
-			address:     "evmos19y7d5jz7q0v86zw5m0300mhprpvu0ccc4x6ggg",
+			address:     "cosmos1p3ucd3ptpw902fluyjzhq3ffgq4ntddac9sass",
 			expectPass:  false,
 		},
 		{
 			msg:                "Clawback proposal - invalid destination addr",
 			title:              "test",
 			description:        "test desc",
-			address:            "evmos19y7d5jz7q0v86zw5m0300mhprpvu0ccc4x6xgg",
+			address:            "cosmos1p3ucd3ptpw902fluyjzhq3ffgq4ntddac9sa3s",
 			destinationAddress: "125182ujaisch8hsgs",
 			expectPass:         false,
 		},

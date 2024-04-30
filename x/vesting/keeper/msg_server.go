@@ -329,8 +329,13 @@ func (k Keeper) ConvertVestingAccount(
 	}
 
 	// check if account has any vesting coins left
-	if vestingAcc.GetVestingCoins(ctx.BlockTime()) != nil {
+	if !vestingAcc.GetVestingCoins(ctx.BlockTime()).IsZero() {
 		return nil, errorsmod.Wrapf(errortypes.ErrInvalidRequest, "vesting coins still left in account: %s", msg.VestingAddress)
+	}
+
+	// check if account has any locked up coins left
+	if vestingAcc.HasLockedCoins(ctx.BlockTime()) {
+		return nil, errorsmod.Wrapf(errortypes.ErrInvalidRequest, "locked up coins still left in account: %s", msg.VestingAddress)
 	}
 
 	// if gov clawback is disabled, remove the entry from the store.

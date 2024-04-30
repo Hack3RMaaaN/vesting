@@ -6,9 +6,10 @@ package vesting
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/evmos/vesting/x/vesting/client/cli"
-	keeper2 "github.com/evmos/vesting/x/vesting/keeper"
+	"github.com/evmos/vesting/x/vesting/keeper"
 	"github.com/evmos/vesting/x/vesting/types"
 
 	abci "github.com/cometbft/cometbft/abci/types"
@@ -30,6 +31,9 @@ var (
 	_ module.AppModule      = AppModule{}
 	_ module.AppModuleBasic = AppModuleBasic{}
 )
+
+// consensusVersion defines the current x/vesting module consensus version.
+const consensusVersion = 2
 
 // AppModuleBasic defines the basic application module used by the sub-vesting
 // module. The module itself contain no special logic or state other than message
@@ -86,7 +90,7 @@ func (AppModuleBasic) GetQueryCmd() *cobra.Command {
 // AppModule interface.
 type AppModule struct {
 	AppModuleBasic
-	keeper keeper2.Keeper
+	keeper keeper.Keeper
 	ak     authkeeper.AccountKeeper
 	bk     bankkeeper.Keeper
 	sk     stakingkeeper.Keeper
@@ -94,7 +98,7 @@ type AppModule struct {
 
 // NewAppModule returns a new vesting AppModule.
 func NewAppModule(
-	k keeper2.Keeper,
+	k keeper.Keeper,
 	ak authkeeper.AccountKeeper,
 	bk bankkeeper.Keeper,
 	sk stakingkeeper.Keeper,
@@ -134,6 +138,12 @@ func (AppModule) QuerierRoute() string {
 func (am AppModule) RegisterServices(cfg module.Configurator) {
 	types.RegisterMsgServer(cfg.MsgServer(), am.keeper)
 	types.RegisterQueryServer(cfg.QueryServer(), am.keeper)
+
+	migrator := keeper.NewMigrator(am.keeper)
+
+	if err := cfg.RegisterMigration(types.ModuleName, 1, migrator.Migrate1to2); err != nil {
+		panic(fmt.Errorf("failed to migrate %s to v2: %w", types.ModuleName, err))
+	}
 }
 
 // InitGenesis performs genesis initialization for the vesting module. It returns
@@ -156,4 +166,4 @@ func (am AppModule) ExportGenesis(_ sdk.Context, cdc codec.JSONCodec) json.RawMe
 }
 
 // ConsensusVersion implements AppModule/ConsensusVersion.
-func (AppModule) ConsensusVersion() uint64 { return 1 }
+func (AppModule) ConsensusVersion() uint64 { return consensusVersion }
