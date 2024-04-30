@@ -1,7 +1,9 @@
 # Changelog
 
-## Unreleased
+## [v2.0.0](https://github.com/evmos/vesting/releases/tag/v2.0.0) - 2024-04-30
 
 ### State Machine Breaking
 
-- [#1](https://github.com/evmos/vesting-ghsa-hwgx-9jq6-cx8h/pull/1) Refactor logic to fix the track delegation calculation and anteHandler for `MsgCreateValidator`
+- Refactor logic to fix the track delegation calculation and anteHandler for `MsgCreateValidator`
+
+## [v1.0.0](https://github.com/evmos/vesting/releases/tag/v1.0.0) - 2024-04-26
