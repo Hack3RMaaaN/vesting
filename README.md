@@ -1,6 +1,6 @@
-# x/vesting
+## x/vesting
 
-## Overview
+### Overview
 
 This page presents comprehensive details regarding the Vesting Module offered by Evmos. The functionality of this module empowers users to transform their accounts into clawback vesting accounts, allowing the reception of tokens from a designated funder. Additionally, it provides the funder with the capability to stipulate specific vesting and locking schedules, and to clawback unvested tokens.
 This module is a copy of the original [x/vesting](https://github.com/evmos/evmos/tree/main/x/vesting) module and has been adapted to not rely on Evmos's custom [EthAccount](https://github.com/evmos/evmos/blob/6fda63866715b248bbd03c13461163a58de48c09/proto/ethermint/types/v1/account.proto#L14).
